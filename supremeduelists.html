@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stickman Duelist - Bright Map & Fixed Hat</title>
+
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #gameContainer { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        canvas { background: #111; display: block; max-width: 100%; max-height: 100%; }
+
+        #tut-book-btn {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: #eab308;
+            color: #0f172a;
+            padding: 8px 15px;
+            font-family: sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 998;
+            transition: transform 0.1s ease;
+        }
+        #tut-book-btn:active { transform: scale(0.9); }
+
+        #game-tutorial-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        #game-tutorial-box {
+            width: 340px;
+            background: #0f172a;
+            border: 3px solid #38bdf8;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: sans-serif;
+            color: #f8fafc;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .tut-title { font-weight: bold; color: #38bdf8; font-size: 15px; margin-bottom: 12px; text-align: center; border-bottom: 2px solid rgba(56, 189, 248, 0.3); padding-bottom: 5px; }
+        .tut-line { margin-bottom: 12px; }
+        .font-highlight { color: #facc15; }
+        .font-warning { color: #f87171; }
+        .font-funny { color: #4ade80; }
+
+        .close-tut-btn { display: block; margin: 15px auto 0 auto; background: #38bdf8; color: #0f172a; border: none; padding: 8px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+
+        #startMenu, #gameOverMenu { position: absolute; background: rgba(10,15,30,0.96); border-radius: 20px; padding: 25px; text-align: center; color: white; z-index: 20; width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto; border: 2px solid #38bdf8; box-shadow: 0 0 30px rgba(56,189,248,0.3); }
+        #gameOverMenu { top: auto; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(10, 15, 30, 0.88); max-height: none; overflow: visible; }        
+        #startMenu h1 { font-size: 26px; color: #38bdf8; margin: 0 0 5px 0; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+        .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 15px; }
+        
+        .config-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #1e293b; padding: 10px 14px; border-radius: 12px; border: 1px solid #334155; }
+        .config-label { font-size: 13px; font-weight: bold; color: #cbd5e1; }
+        .game-select { background: #0f172a; color: #38bdf8; border: 2px solid #38bdf8; padding: 6px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer; font-size: 13px; }
+        .game-select option { background: #0f172a; color: white; }
+
+        .weapon-select { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+        .weapon-option { background: #1e293b; border: 2px solid #475569; padding: 10px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; text-align: left; font-size: 13px; }
+        .weapon-option.selected { border-color: #f59e0b; background: rgba(245,158,11,0.15); color: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.3); }
+        
+        .skin-section { background: #111827; border: 1px dashed #4b5563; border-radius: 12px; padding: 12px; margin-bottom: 15px; text-align: left; }
+        .skin-title { font-size: 13px; font-weight: bold; color: #38bdf8; margin-bottom: 8px; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 4px; }
+        .skin-grid { display: flex; flex-direction: column; gap: 8px; }
+        .skin-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+        .color-picker-wrapper { display: flex; align-items: center; gap: 5px; }
+        .color-input { background: none; border: none; width: 32px; height: 32px; cursor: pointer; padding: 0; }
+
+        #startBtn, #restartBtn { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 14px; font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; box-shadow: 0 4px 0 #047857; margin-top: 10px; }
+        #gameOverMenu { display: none; border-color: #ef4444; box-shadow: 0 0 30px rgba(239,68,68,0.3); }
+        #winnerText { font-size: 22px; font-weight: bold; margin-bottom: 20px; }
+        #countdownOverlay { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); color: #f59e0b; font-size: 80px; font-weight: bold; text-shadow: 3px 3px 0 #000; z-index: 10; display: none; pointer-events: none; }
+        
+        #uiControls { position: absolute; top: 20px; left: 20px; right: 20px; display: none; justify-content: space-between; pointer-events: none; z-index: 15; width: calc(100% - 40px); }
+        .ui-btn { width: 44px; height: 44px; border-radius: 12px; background: rgba(15, 23, 42, 0.9); border: 2px solid #38bdf8; color: white; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; box-shadow: 0 0 10px rgba(56,189,248,0.2); transition: 0.2s; }
+        #homeBtn { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); display: none; font-size: 14px; width: 65px; }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <div id="countdownOverlay">3</div>
+
+    <div id="uiControls">
+        <div id="pauseBtn" class="ui-btn" onclick="togglePause()">☰</div>
+        <div id="homeBtn" class="ui-btn" onclick="goHome()">HOME</div>
+    </div>
+    
+    <div id="startMenu">
+        <h1>STICKMAN DUELIST</h1>
+        <div class="subtitle">Tùy chỉnh cấu hình trận đấu</div>
+        
+        <div class="config-row">
+            <div class="config-label">🤖 CHẾ ĐỘ ĐỐI THỦ (CPU)</div>
+            <select id="gameModeSelect" class="game-select" onchange="updateMatchConfig()">
+                <option value="cpu-medium">🤖 CPU - Vừa Phải</option>
+                <option value="cpu-easy">🥚 CPU - Tập Bắn</option>
+                <option value="cpu-hard">🔥 CPU - Hủy Diệt</option>
+                <option value="player">👥 2 NGƯỜI CHƠI (PvP)</option>
+                <option value="none">🏜️ MỘT MÌNH (Test Chiêu)</option>
+            </select>
+        </div>
+
+        <div class="subtitle" style="text-align: left; margin-bottom: 5px;">Chọn vũ khí P1:</div>
+        <div class="weapon-select">
+            <div class="weapon-option selected" onclick="selectWeapon('boxing', this)">🥊 GĂNG ĐẤM BỐC (Cân Bằng)</div>
+            <div class="weapon-option" onclick="selectWeapon('saber', this)">⚔️ KIẾM ÁNH SÁNG (Tầm Xa)</div>
+            <div class="weapon-option" onclick="selectWeapon('hammer', this)">🔨 BÚA THIÊN THẠCH (Siêu Đẩy Lùi)</div>
+            <div class="weapon-option" onclick="selectWeapon('boots', this)">👟 ỦNG PHẢN LỰC</div>
+            <div class="weapon-option" onclick="selectWeapon('random', this)">❓ VŨ KHÍ NGẪU NHIÊN</div>
+        </div>
+
+        <!-- TÙY BIẾN SKIN PLAYER 1 -->
+        <div class="skin-section">
+            <div class="skin-title">🎨 NGOẠI HÌNH PLAYER 1 (BÊN TRÁI)</div>
+            <div class="skin-grid">
+                <div class="skin-row">
+                    <span>👑 Chọn nón/tóc:</span>
+                    <select id="p1HatSelect" class="game-select" onchange="updateSkinConfig()">
+                        <option value="none">Trọc Block</option>
+                        <option value="gentleman">🎩 Mũ Quý Ông</option>
+                        <option value="military">🪖 Mũ Cối Chiến Thần</option>
+                        <option value="cat-ears">🐱 Tai Mèo Kute</option>
+                    </select>
+                </div>
+                <div class="skin-row">
+                    <span>🔴 Màu da chính:</span>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="p1ColorInput" class="color-input" value="#38bdf8" onchange="updateSkinConfig()">
+                    </div>
+                </div>
+                <div class="skin-row">
+                    <span>✨ Màu viền 3D:</span>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="p1StrokeInput" class="color-input" value="#0284c7" onchange="updateSkinConfig()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TÙY BIẾN SKIN PLAYER 2 / CPU -->
+        <div id="p2SkinSection" class="skin-section">
+            <div class="skin-title">🎨 NGOẠI HÌNH ĐỐI THỦ (BÊN PHẢI)</div>
+            <div class="skin-grid">
+                <div class="skin-row">
+                    <span>👑 Chọn nón/tóc:</span>
+                    <select id="p2HatSelect" class="game-select" onchange="updateSkinConfig()">
+                        <option value="none">Trọc Block</option>
+                        <option value="gentleman">🎩 Mũ Quý Ông</option>
+                        <option value="military">🪖 Mũ Cối Chiến Thần</option>
+                        <option value="cat-ears">🐱 Tai Mèo Kute</option>
+                    </select>
+                </div>
+                <div class="skin-row">
+                    <span>🔴 Màu da chính:</span>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="p2ColorInput" class="color-input" value="#ff7171" onchange="updateSkinConfig()">
+                    </div>
+                </div>
+                <div class="skin-row">
+                    <span>✨ Màu viền 3D:</span>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="p2StrokeInput" class="color-input" value="#b91c1c" onchange="updateSkinConfig()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px; text-align: left;">
+            <div class="subtitle" style="margin-bottom: 8px; color: #94a3b8; font-size: 13px;">Vị trí Joystick Mobile (P1):</div>
+            <div style="display: flex; gap: 10px;">
+                <button id="joy-left-btn" type="button" style="flex: 1; padding: 10px; background: rgba(245,158,11,0.15); border: 2px solid #f59e0b; color: #f59e0b; font-weight: bold; border-radius: 8px; cursor: pointer;" onclick="setJoystickSide('left', this)">🕹️ BÊN TRÁI</button>
+                <button id="joy-right-btn" type="button" style="flex: 1; padding: 10px; background: #1e293b; border: 2px solid #475569; color: white; font-weight: bold; border-radius: 8px; cursor: pointer;" onclick="setJoystickSide('right', this)">🕹️ BÊN PHẢI</button>
+            </div>
+        </div>
+
+        <button id="startBtn" onclick="pressStart()">VÀO TRẬN ĐẤU</button>
+    </div>
+
+    <div id="gameOverMenu">
+        <div id="winnerText">PLAYER CHIẾF THẮNG!</div>
+        <button id="restartBtn" onclick="restartGame()">Trận Tiếp Theo</button>
+    </div>
+
+    <div id="tut-book-btn" onclick="openTutorial()">
+        📖 Hướng dẫn (ko đọc là gay)
+    </div>
+
+    <div id="game-tutorial-overlay" onclick="closeTutorial()">
+        <div id="game-tutorial-box" onclick="event.stopPropagation()">
+            <div class="tut-title">📖 HƯỚNG DẪN ĐIỀU KHIỂN</div>
+            
+            <div class="tut-line font-highlight">
+                🎮 <strong>CHẾ ĐỘ 1 NGƯỜI:</strong><br>
+                - PC: Phím W-A-S-D hoặc kéo Joystick chuột.<br>
+                - Mobile: Kéo Joystick ảo trên màn hình.
+            </div>
+            
+            <div class="tut-line font-funny">
+                👥 <strong>CHẾ ĐỘ 2 NGƯỜI CHƠI (PC):</strong><br>
+                - <b>Người 1 (Trái):</b> Nhấn tổ hợp phím [W-A-S-D]<br>
+                - <b>Người 2 (Phải):</b> Nhấn tổ hợp các phím [Mũi Tên]
+            </div>
+            
+            <div class="tut-line font-warning">
+                💡 <b>Mẹo sạc chiêu:</b> Kéo/Bấm hướng LÊN để Nhảy Cao, hướng XUỐNG để phòng thủ/rơi nhanh. Thả phím/chuột để kích hoạt Siêu Kỹ Năng!
+            </div>
+
+            <button class="close-tut-btn" onclick="closeTutorial()">ĐÃ HIỂU! 👌</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const countdownEl = document.getElementById('countdownOverlay');
+const startMenu = document.getElementById('startMenu');
+const gameOverMenu = document.getElementById('gameOverMenu');
+const winnerText = document.getElementById('winnerText');
+const uiControls = document.getElementById('uiControls');
+const pauseBtn = document.getElementById('pauseBtn');
+const homeBtn = document.getElementById('homeBtn');
+const menuMusic = new Audio("menu.mp3");    
+const battleMusic = new Audio("battle.mp3");    
+const victoryMusic = new Audio("");            
+menuMusic.loop = true;
+battleMusic.loop = true;
+victoryMusic.loop = false;
+
+let matchConfig = {
+    gameMode: "cpu-medium", 
+    playerWeapon: "boxing",
+    joystickSide: "left",
+    p1Hat: "none", p1Color: "#38bdf8", p1Stroke: "#0284c7",
+    p2Hat: "none", p2Color: "#ff7171", p2Stroke: "#b91c1c"
+};
+
+function updateMatchConfig() {
+    matchConfig.gameMode = document.getElementById('gameModeSelect').value;
+    const p2Section = document.getElementById('p2SkinSection');
+    if (matchConfig.gameMode === "none") {
+        p2Section.style.display = "none";
+    } else {
+        p2Section.style.display = "block";
+    }
+}
+
+function updateSkinConfig() {
+    matchConfig.p1Hat = document.getElementById('p1HatSelect').value;
+    matchConfig.p1Color = document.getElementById('p1ColorInput').value;
+    matchConfig.p1Stroke = document.getElementById('p1StrokeInput').value;
+
+    matchConfig.p2Hat = document.getElementById('p2HatSelect').value;
+    matchConfig.p2Color = document.getElementById('p2ColorInput').value;
+    matchConfig.p2Stroke = document.getElementById('p2StrokeInput').value;
+}
+
+const keysPressed = {};
+window.addEventListener('keydown', (e) => { keysPressed[e.code] = true; });
+window.addEventListener('keyup', (e) => {
+    if (gameStarted && !isGameOver && !isPaused) {
+        if (e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD') {
+            if (player && player.hp > 0) player.triggerSpecialSkill();
+        }
+        if (e.code === 'ArrowUp' || e.code === 'ArrowLeft' || e.code === 'ArrowDown' || e.code === 'ArrowRight') {
+            if (matchConfig.gameMode === 'player' && enemy && enemy.hp > 0) enemy.triggerSpecialSkill();
+        }
+    }
+    keysPressed[e.code] = false;
+});
+
+function openTutorial() {
+    const overlay = document.getElementById('game-tutorial-overlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function closeTutorial() {
+    const overlay = document.getElementById('game-tutorial-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+let WORLD_WIDTH = 0, WORLD_HEIGHT = 0, floor = {};
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth > 950 ? 950 : window.innerWidth;
+    canvas.height = window.innerHeight > 550 ? 550 : window.innerHeight;
+    WORLD_WIDTH = canvas.width * 2.2;
+    WORLD_HEIGHT = canvas.height * 1.4;
+    floor = { x: WORLD_WIDTH * 0.2, y: WORLD_HEIGHT * 0.55, width: WORLD_WIDTH * 0.6, height: 50 };
+}
+resizeCanvas();
+
+let score = { player: 0, ai: 0 }, gameStarted = false, isInCountdown = false, isGameOver = false, isPaused = false, countdownValue = 3, audioInitialized = false;
+
+// ĐÃ LÊN ĐÈN BẦU TRỜI: Các tông nền được chỉnh sáng rực rỡ để nón rõ mồn một!
+const MAPS = [
+    { skyTop: "#38bdf8", skyBot: "#bae6fd", island: "#475569", grass: "#4ade80", border: "#22c55e", clouds: "rgba(255,255,255,0.4)" }, 
+    { skyTop: "#f97316", skyBot: "#ffedd5", island: "#52525b", grass: "#facc15", border: "#eab308", clouds: "rgba(255,255,255,0.3)" }, 
+    { skyTop: "#c084fc", skyBot: "#f3e8ff", island: "#3f3f46", grass: "#f472b6", border: "#ec4899", clouds: "rgba(255,255,255,0.4)" }  
+];
+let currentMapIdx = 0;
+
+const WEAPONS = {
+    boxing: { type: "boxing", range: 30, knockback: 40, color: "#f43f5e", radius: 8 },
+    saber:  { type: "saber",  range: 35, knockback: 50, color: "#06b6d4", radius: 6 },
+        hammer: { type: "hammer", range: 38, knockback: 30, color: "#eab308", radius: 14 },
+    boots: { type: "boots", range: 15, knockback: 42, color: "#10b981", radius: 12 }
+};
+   let floors = []; // Lưu danh sách các block sàn của map hiện tại
+let currentMapIndex = 0; // Biến theo dõi map đang chơi
+
+const MAP_TEMPLATES = [
+    {
+        name: "Đảo Cổ Điển",
+        setup: () => [
+            { x: (WORLD_WIDTH - 500) / 2, y: WORLD_HEIGHT - 220, width: 500, height: 40 }
+        ]
+    },
+    {
+        name: "Song Long Tranh Hùng",
+        setup: () => [
+            { x: 150, y: WORLD_HEIGHT - 220, width: 220, height: 40 }, 
+            { x: WORLD_WIDTH - 370, y: WORLD_HEIGHT - 220, width: 220, height: 40 } 
+        ]
+    },
+    {
+        name: "Đài Lôi Vũ Đài",
+        setup: () => [
+            { x: (WORLD_WIDTH - 200) / 2, y: WORLD_HEIGHT - 280, width: 200, height: 120 } 
+        ]
+    },
+    {
+        name: "Thung Lũng Sấm Sét",
+        setup: () => {
+            return [
+                { x: 50, y: 120, width: 140, height: WORLD_HEIGHT }, // Vách trái siêu cao
+                { x: 190, y: WORLD_HEIGHT - 200, width: WORLD_WIDTH - 380, height: 50, isDynamic: true, baseY: WORLD_HEIGHT - 200 }, // Sàn nâng hạ động
+                { x: WORLD_WIDTH - 190, y: 120, width: 140, height: WORLD_HEIGHT } // Vách phải siêu cao
+            ];
+        },
+        update: (mapFloors) => {
+            let cycle = Date.now() * 0.0015; 
+            let offset = Math.sin(cycle) * 70; // Sàn giữa trồi sụt trong phạm vi 70px
+            let middleFloor = mapFloors.find(f => f.isDynamic);
+            if (middleFloor) {
+                middleFloor.y = middleFloor.baseY + offset;
+            }
+        }
+    }
+];
+
+let projectiles = []; 
+const camera = { x: 0, y: 0, zoom: 1, shake: 0 };
+const GRAVITY = 0.38, FRICTION = 0.86;
+let audioCtx = null, bgmInterval = null;
+
+function initAudio() {
+    if (audioInitialized) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioInitialized = true;
+    
+    if (audioCtx.state === 'suspended') {
+        const resumeAudio = () => {
+            audioCtx.resume().then(() => {
+                // 1. Khi vừa mở game (ở Menu), CHỈ phát nhạc Menu thôi!
+                battleMusic.pause(); // Đảm bảo nhạc trận đấu phải im lặng
+                menuMusic.currentTime = 0;
+                menuMusic.play().catch(e => console.log("Lỗi phát nhạc menu:", e));
+                
+                window.removeEventListener('click', resumeAudio);
+                window.removeEventListener('touchstart', resumeAudio);
+            });
+        };
+        window.addEventListener('click', resumeAudio);
+        window.addEventListener('touchstart', resumeAudio);
+    } else {
+        battleMusic.pause();
+        menuMusic.currentTime = 0;
+        menuMusic.play().catch(e => console.log(e));
+    }
+}
+
+function backToMenu() {
+    victoryMusic.pause(); // Tắt nhạc chiến thắng
+    victoryMusic.currentTime = 0;
+    
+    battleMusic.pause();  // Tắt nhạc chiến đấu
+    
+    menuMusic.play();     // Bật lại nhạc chill chill của Menu
+    // ... các đoạn code chuyển màn hình của bạn
+}
+function playVictorySequence() {
+    // 1. Dừng ngay nhạc chiến đấu và đưa thời gian phát về 0
+    battleMusic.pause();
+    battleMusic.currentTime = 0;
+    
+    // 2. Dừng luôn nhạc menu (nếu chẳng may đang chạy ngầm)
+    menuMusic.pause();
+    menuMusic.currentTime = 0;
+    
+    // 3. Bật nhạc chiến thắng lên vang dội
+    victoryMusic.currentTime = 0; // Phát từ đầu
+    victoryMusic.play().catch(e => console.log("Chờ người dùng tương tác để phát nhạc:", e));
+}
+
+function playSound(type) {
+    if (!audioCtx || audioCtx.state === 'suspended') return;
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    if (type === 'clash') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(850, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+    } else if (type === 'skill') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    } else {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(130, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+    }
+}
+
+function startBGM() {
+    if (bgmInterval) clearInterval(bgmInterval);
+    let idx = 0;
+    bgmInterval = setInterval(() => {
+        if (!gameStarted || isGameOver || isPaused || !audioCtx) return;
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        let notes = [55, 55, 65, 55, 73, 55, 65, 82], freq = notes[idx % notes.length];
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.012, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.18);
+        idx++;
+    }, 220);
+}
+
+function selectWeapon(key, element) {
+    matchConfig.playerWeapon = key;
+    document.querySelectorAll('.weapon-option').forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+}
+
+function getRandomWeapon() {
+    const keys = ['boxing', 'saber', 'hammer'];
+    return WEAPONS[keys[Math.floor(Math.random() * keys.length)]];
+}
+
+function togglePause() {
+    if (!gameStarted || isGameOver) return;
+    isPaused = !isPaused;
+    if (isPaused) { pauseBtn.innerText = "▶️"; homeBtn.style.display = "flex"; } 
+    else { pauseBtn.innerText = "☰"; homeBtn.style.display = "none"; }
+}
+
+function goHome() {
+    isPaused = false; gameStarted = false; isInCountdown = false; isGameOver = false;
+    uiControls.style.display = "none"; homeBtn.style.display = "none"; pauseBtn.innerText = "☰";
+    startMenu.style.display = "block"; gameOverMenu.style.display = "none"; projectiles = [];
+    
+    // --- 🎵 XỬ LÝ ĐỔI NHẠC KHI QUAY VỀ MENU CHÍNH ---
+    battleMusic.pause();       // 1. Ép nhạc trận đấu phải CÂM LẶNG NGAY
+    victoryMusic.pause();      // 2. Ép nhạc chiến thắng dừng lại
+    
+    menuMusic.currentTime = 0; // 3. Đưa nhạc menu về đầu bài
+    menuMusic.play().catch(e => console.log("Lỗi bật lại nhạc menu:", e)); // 4. Phát nhạc menu chill
+    // -----------------------------------------------
+
+    const bookBtn = document.getElementById('tut-book-btn');
+    if (bookBtn) bookBtn.style.display = 'block';
+}
+
+function initRandomMap() {
+    // Chọn ngẫu nhiên index từ mảng bản đồ
+    currentMapIndex = Math.floor(Math.random() * MAP_TEMPLATES.length);
+    const activeMap = MAP_TEMPLATES[currentMapIndex];
+    // Tạo địa hình cho trận đấu
+    floors = activeMap.setup();
+    console.log("Đã đổi sang map: " + activeMap.name);
+}
+
+function pressStart() {
+    startMenu.style.display = "none"; 
+    initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
+    uiControls.style.display = "flex";
+    
+    // --- 🎵 XỬ LÝ ĐỔI NHẠC KHI VÀO TRẬN (CHÚ Ý ĐOẠN NÀY) ---
+    menuMusic.pause();          // 1. Tắt ngay nhạc Menu đi
+    victoryMusic.pause();      // 2. Tắt nhạc chiến thắng ván trước nếu có
+    
+    battleMusic.currentTime = 0; // 3. Đưa nhạc trận đấu về giây đầu tiên
+    battleMusic.play().catch(e => console.log("Lỗi phát nhạc trận:", e)); // 4. Phát nhạc trận!
+    // ------------------------------------------------------
+
+    resizeCanvas();
+    updateSkinConfig();
+    initRandomMap();
+
+    let spawnFloor = floors[0];
+    player = new Stickman(spawnFloor.x + 40, spawnFloor.y - 120, matchConfig.p1Color, matchConfig.p1Stroke, matchConfig.p1Hat, true);
+    player.weapon = matchConfig.playerWeapon === 'random' ? getRandomWeapon() : WEAPONS[matchConfig.playerWeapon];
+    projectiles = [];
+
+    if (matchConfig.gameMode !== "none") {
+        let enemyFloor = floors[floors.length - 1];
+        enemy = new Stickman(enemyFloor.x + enemyFloor.width - 40, enemyFloor.y - 120, matchConfig.p2Color, matchConfig.p2Stroke, matchConfig.p2Hat, false);
+        enemy.weapon = getRandomWeapon();
+    } else {
+        enemy = null;
+    }
+    
+    const bookBtn = document.getElementById('tut-book-btn');
+    if (bookBtn) bookBtn.style.display = 'none';
+    
+    startCountdown();
+}
+
+function startCountdown() {
+    gameStarted = false; isInCountdown = true; isGameOver = false; isPaused = false; countdownValue = 3;
+    countdownEl.style.display = "block"; countdownEl.innerText = countdownValue; countdownEl.style.color = "#f59e0b";
+    
+    joystickLeft.visible = true;
+    if (matchConfig.gameMode === "player") {
+        joystickRight.visible = true;
+    } else {
+        joystickRight.visible = false;
+    }
+
+    const timer = setInterval(() => {
+        countdownValue--;
+        if (countdownValue > 0) countdownEl.innerText = countdownValue;
+        else if (countdownValue === 0) { countdownEl.innerText = "GO!"; countdownEl.style.color = "#10b981"; }
+        else { countdownEl.style.display = "none"; gameStarted = true; isInCountdown = false; clearInterval(timer); }
+    }, 1000);
+}
+
+class Stickman {
+    constructor(x, y, color, strokeColor, hatType, isPlayer = true) {
+        this.x = x; this.y = y;
+        this.vx = 0; this.vy = 0;
+        this.color = color; this.strokeColor = strokeColor;
+        this.hatType = hatType; this.isPlayer = isPlayer;
+        this.radius = 12; this.headRadius = 12;
+        this.bodyHeight = 35; this.legLength = 25;
+        this.onGround = false; this.hp = 100;
+        this.maxHp = 100; this.angle = 0; this.va = 0;
+        this.facing = 1; this.weapon = null;
+        this.atkCooldown = 0; this.skillActive = false;
+        this.skillTimer = 0; this.controls = { left: false, right: false, up: false, down: false, attack: false };
+    }
+
+    update() {
+        if (!gameStarted || isGameOver) return;
+
+        // Xử lý Cooldown đòn đánh
+        if (this.atkCooldown > 0) this.atkCooldown--;
+        if (this.skillActive) {
+            this.skillTimer--;
+            if (this.skillTimer <= 0) this.skillActive = false;
+        }
+
+        // Áp dụng trọng lực
+        this.vy += 0.4;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.angle += this.va;
+        this.vx *= 0.85; this.va *= 0.85;
+
+        this.onGround = false;
+
+        // 🧱 HỆ THỐNG VA CHẠM ĐA HƯỚNG CHỐNG XUYÊN TƯỜNG (ĐÃ FIX LỖI TOKEN ELSE)
+        for (let f of floors) {
+            let charLeft = this.x - 12;
+            let charRight = this.x + 12;
+            let charTop = this.y - this.headRadius * 2;
+            let charBottom = this.y + this.bodyHeight + this.legLength;
+
+            if (charRight > f.x && charLeft < f.x + f.width &&
+                charBottom > f.y && charTop < f.y + f.height) {
+                
+                let overlapX = Math.min(charRight - f.x, f.x + f.width - charLeft);
+                let overlapY = Math.min(charBottom - f.y, f.y + f.height - charTop);
+
+                if (overlapX < overlapY) {
+                    // Đâm vào tường ngang -> Đẩy ra ngoài vách đá
+                    if (this.x < f.x + f.width / 2) {
+                        this.x -= overlapX;
+                    } else {
+                        this.x += overlapX;
+                    }
+                    this.vx = 0;
+                } else {
+                    // Va chạm theo chiều dọc (Sàn hoặc Trần)
+                    if (this.y < f.y + f.height / 2) {
+                        // Đứng trên sàn
+                        this.y = f.y - (this.bodyHeight + this.legLength);
+                        this.vy = 0;
+                        this.onGround = true;
+                        if (!this.skillActive) this.angle *= 0.5;
+                    } else {
+                        // Cộc đầu dưới gầm block
+                        this.y = f.y + f.height + (this.headRadius * 2);
+                        if (this.vy < 0) this.vy = 0;
+                    }
+                }
+            }
+        }
+
+        // Giới hạn biên bản đồ không cho rơi ra ngoài thế giới
+        if (this.x < 0) { this.x = 0; this.vx = 0; }
+        if (this.x > WORLD_WIDTH) { this.x = WORLD_WIDTH; this.vx = 0; }
+        if (this.y > lavaSurfaceY + 100) { this.hp = 0; checkGameOver(); }
+
+        // Cập nhật vị trí vũ khí đi theo nhân vật
+        if (this.weapon) {
+            this.weapon.update(this);
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.lineWidth = 3.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.strokeStyle = this.strokeColor; ctx.fillStyle = this.color;
+
+        let headX = this.x;
+        let headY = this.y - this.headRadius;
+        let bodyTopX = this.x;
+        let bodyTopY = this.y;
+        let bodyBottomX = this.x + Math.sin(this.angle) * this.bodyHeight;
+        let bodyBottomY = this.y + Math.cos(this.angle) * this.bodyHeight;
+
+        // Vẽ vũ khí nằm ở lớp phía sau nhân vật
+        if (this.weapon) this.weapon.draw(this);
+
+        // Vẽ Chân trái & Chân phải
+        let legX1 = bodyBottomX - Math.cos(this.angle) * 8 + Math.sin(this.angle + 0.3) * this.legLength;
+        let legY1 = bodyBottomY + Math.sin(this.angle) * 8 + Math.cos(this.angle + 0.3) * this.legLength;
+        ctx.beginPath(); ctx.moveTo(bodyBottomX, bodyBottomY); ctx.lineTo(legX1, legY1); ctx.stroke();
+
+        let legX2 = bodyBottomX + Math.cos(this.angle) * 8 + Math.sin(this.angle - 0.3) * this.legLength;
+        let legY2 = bodyBottomY - Math.sin(this.angle) * 8 + Math.cos(this.angle - 0.3) * this.legLength;
+        ctx.beginPath(); ctx.moveTo(bodyBottomX, bodyBottomY); ctx.lineTo(legX2, legY2); ctx.stroke();
+
+        // Vẽ Thân mình
+        ctx.beginPath(); ctx.moveTo(bodyTopX, bodyTopY); ctx.lineTo(bodyBottomX, bodyBottomY); ctx.stroke();
+
+        // Vẽ Đầu nhân vật hình tròn
+        ctx.beginPath(); ctx.arc(headX, headY, this.headRadius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+        // Vẽ Mắt theo hướng nhìn mặt
+        ctx.fillStyle = "#000";
+        let eyeX = headX + this.facing * 4;
+        let eyeY = headY - 2;
+        ctx.beginPath(); ctx.arc(eyeX, eyeY, 2, 0, Math.PI * 2); ctx.fill();
+
+        // Vẽ Mũ (Hat) nếu có chọn
+        if (this.hatType && this.hatType !== "none") {
+            ctx.save();
+            ctx.translate(headX, headY - this.headRadius + 2);
+            ctx.scale(this.facing, 1);
+            ctx.lineWidth = 2;
+            if (this.hatType === "cap") {
+                ctx.fillStyle = "#ef4444"; ctx.strokeStyle = "#991b1b";
+                ctx.beginPath(); ctx.arc(0, 0, 10, Math.PI, 0); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(15, -2); ctx.stroke();
+            } else if (this.hatType === "crown") {
+                ctx.fillStyle = "#fbbf24"; ctx.strokeStyle = "#b45309";
+                ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-12, -15); ctx.lineTo(-4, -6);
+                ctx.lineTo(0, -18); ctx.lineTo(4, -6); ctx.lineTo(12, -15); ctx.lineTo(10, 0);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+            } else if (this.hatType === "ninja") {
+                ctx.fillStyle = "#1e293b"; ctx.strokeStyle = "#0f172a";
+                ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(11, -2); ctx.lineTo(6, -10); ctx.lineTo(-6, -10);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = "#ef4444"; ctx.fillRect(-15, -5, 6, 3);
+            }
+            ctx.restore();
+        }
+        ctx.restore();
+    }
+}
+
+
+        ctx.save(); 
+        ctx.translate(0, 10);
+        ctx.rotate(this.armAngle - this.clashOffset);
+        ctx.strokeStyle = this.color; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(18, 0); ctx.stroke();
+        
+        ctx.save(); ctx.translate(18, 0); 
+        if (this.weapon.type === 'boxing') {
+            ctx.fillStyle = this.weapon.color; ctx.beginPath(); ctx.arc(4, 0, 8, 0, Math.PI * 2); ctx.fill();
+        } else if (this.weapon.type === 'saber') {
+            ctx.strokeStyle = this.weapon.color; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(30, 0); ctx.stroke();
+        } else if (this.weapon.type === 'hammer') {
+            ctx.strokeStyle = "#a1a1aa"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(24, 0); ctx.stroke();
+            ctx.fillStyle = this.weapon.color; ctx.fillRect(24, -14, 14, 28); 
+        }
+        ctx.restore(); ctx.restore();
+        
+        ctx.restore();
+    }
+}    
+
+let player = null;
+let enemy = null;
+
+class VirtualJoystick {
+    constructor(side) {
+        this.side = side; this.baseX = 0; this.baseY = 0; this.radius = 50;
+        this.knobX = 0; this.knobY = 0; this.active = false;
+        this.inputX = 0; this.inputY = 0; this.visible = false;
+    }
+    setPos() {
+        this.baseX = (this.side === 'left') ? canvas.width * 0.15 : canvas.width * 0.85;
+        this.baseY = canvas.height * 0.8;
+        if (!this.active) { this.knobX = this.baseX; this.knobY = this.baseY; }
+    }
+    draw() {
+        if (!this.visible || !this.active) return;
+        ctx.fillStyle = "rgba(255,255,255,0.1)"; ctx.beginPath(); ctx.arc(this.baseX, this.baseY, this.radius, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = this.side === 'left' ? "rgba(56,189,248,0.5)" : "rgba(244,63,94,0.5)"; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = this.side === 'left' ? "#38bdf8" : "#f43f5e"; ctx.beginPath(); ctx.arc(this.knobX, this.knobY, 20, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+let joystickLeft = new VirtualJoystick('left');
+let joystickRight = new VirtualJoystick('right');
+
+function setJoystickSide(side, btn) {
+    matchConfig.joystickSide = side;
+    document.getElementById('joy-left-btn').style.background = '#1e293b'; document.getElementById('joy-left-btn').style.borderColor = '#475569'; document.getElementById('joy-left-btn').style.color = 'white';
+    document.getElementById('joy-right-btn').style.background = '#1e293b'; document.getElementById('joy-right-btn').style.borderColor = '#475569'; document.getElementById('joy-right-btn').style.color = 'white';
+    btn.style.background = 'rgba(245,158,11,0.15)'; btn.style.borderColor = '#f59e0b'; btn.style.color = '#f59e0b';
+    
+    joystickLeft.side = side;
+    joystickRight.side = side === 'left' ? 'right' : 'left';
+    joystickLeft.setPos(); joystickRight.setPos();
+}
+
+function checkGameOver() {
+    // 1. Kiểm tra nếu một trong hai bên hết máu (Dùng biến 'enemy' thay vì 'bot')
+    if (player.hp <= 0 || (enemy && enemy.hp <= 0)) {
+        gameStarted = false; // Dừng trận đấu ngay
+        
+        // --- KÍCH HOẠT ĐỔI NHẠC CHIẾN THẮNG TẠI ĐÂY ---
+        playVictorySequence();
+        
+        let isP1Dead = player.hp <= 0;
+        let isP2Dead = matchConfig.gameMode !== "none" ? (enemy && enemy.hp <= 0) : false;
+
+        if (isP1Dead || isP2Dead) {
+            isGameOver = true; 
+            joystickLeft.visible = false;
+            joystickRight.visible = false;
+
+            // Xử lý hiển thị chữ thông báo ai thắng cuộc
+            if (isP1Dead && isP2Dead) { 
+                winnerText.innerText = "BẤT PHÂN THẮNG BẠI!"; 
+            } else if (isP1Dead) {
+                winnerText.innerText = matchConfig.gameMode === "player" ? "NGƯỜI CHƠI 2 CHIẾN THẮNG!" : "AI ĐÃ CHIẾN THẮNG!";
+                score.ai++;
+            } else {
+                winnerText.innerText = "BẠN ĐÃ CHIẾN THẮNG!";
+                score.player++;
+            }
+            
+            // Hiện bảng kết quả sau 1 giây
+            setTimeout(() => {
+                uiControls.style.display = "none";
+                gameOverMenu.style.display = "block";
+                const bookBtn = document.getElementById('tut-book-btn');
+                if (bookBtn) bookBtn.style.display = 'block';
+            }, 1000);
+        }
+    }
+} // <-- Đã bổ sung dấu đóng ngoặc hàm đầy đủ
+
+function restartGame() { 
+    gameOverMenu.style.display = "none"; uiControls.style.display = "flex";
+    currentMapIdx = (currentMapIdx + 1) % MAPS.length;
+    handleEnd(); 
+    pressStart(); 
+}
+
+function handleStart(cx, cy) { 
+    if(!gameStarted || isInCountdown || isPaused) return; 
+    const r = canvas.getBoundingClientRect(), x = cx - r.left, y = cy - r.top; 
+    
+    if (joystickLeft.visible && Math.hypot(x - joystickLeft.baseX, y - joystickLeft.baseY) < joystickLeft.radius + 25) joystickLeft.active = true;
+    if (joystickRight.visible && Math.hypot(x - joystickRight.baseX, y - joystickRight.baseY) < joystickRight.radius + 25) joystickRight.active = true;
+}
+
+function handleMove(cx, cy) { 
+    if (isPaused) return; 
+    const r = canvas.getBoundingClientRect(), x = cx - r.left, y = cy - r.top;
+    
+    [joystickLeft, joystickRight].forEach(joy => {
+        if (!joy.active) return;
+        let angle = Math.atan2(y - joy.baseY, x - joy.baseX), dist = Math.hypot(x - joy.baseX, y - joy.baseY); 
+        if (dist < joy.radius) { joy.knobX = x; joy.knobY = y; } 
+        else { joy.knobX = joy.baseX + Math.cos(angle) * joy.radius; joy.knobY = joy.baseY + Math.sin(angle) * joy.radius; } 
+        joy.inputX = (joy.knobX - joy.baseX) / joy.radius; 
+        joy.inputY = (joy.knobY - joy.baseY) / joy.radius; 
+    });
+}
+
+function handleEnd() { 
+    if (joystickLeft.active && gameStarted && !isPaused && player) player.triggerSpecialSkill();
+    if (joystickRight.active && gameStarted && !isPaused && enemy) enemy.triggerSpecialSkill();
+    
+    joystickLeft.active = false; joystickLeft.knobX = joystickLeft.baseX; joystickLeft.knobY = joystickLeft.baseY; joystickLeft.inputX = 0; joystickLeft.inputY = 0; 
+    joystickRight.active = false; joystickRight.knobX = joystickRight.baseX; joystickRight.knobY = joystickRight.baseY; joystickRight.inputX = 0; joystickRight.inputY = 0; 
+}
+
+canvas.addEventListener('mousedown', (e) => handleStart(e.clientX, e.clientY));
+window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+window.addEventListener('mouseup', handleEnd);
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e.touches[0].clientX, e.touches[0].clientY); });
+window.addEventListener('touchmove', (e) => handleMove(e.touches[0].clientX, e.touches[0].clientY));
+window.addEventListener('touchend', handleEnd);
+
+function checkCombat() {
+    if (!gameStarted || isGameOver || isPaused || !enemy) return;
+    
+    let pTotalAngle = player.angle + (player.armAngle * player.facing);
+    let pWeaponX = player.x + Math.cos(pTotalAngle) * (player.weapon.range + 10) * player.facing;
+    let pWeaponY = player.y + 10 + Math.sin(pTotalAngle) * (player.weapon.range + 10);
+    
+    // Nếu đang phi thân bằng ủng, tâm va chạm chính là đôi chân lao ra phía trước
+    if (player.skillActive && player.weapon.type === 'boots') {
+        pWeaponX = player.x + (player.vx * 0.8);
+        pWeaponY = player.y + 10 + (player.vy * 0.8);
+    }
+    
+    // Nếu đang bật chiêu búa xoay, bán kính quét sát thương sẽ là hình tròn quanh người
+    if (player.skillActive && player.weapon.type === 'hammer') {
+        pWeaponX = player.x + Math.cos(player.armAngle) * (player.weapon.range + 15);
+        pWeaponY = player.y + 10 + Math.sin(player.armAngle) * (player.weapon.range + 15);
+    }
+    
+    let pDist = Math.hypot(pWeaponX - enemy.x, pWeaponY - (enemy.y + 15));
+    let pReach = player.weapon.radius + 28; 
+
+    if (pDist < pReach && enemy.hp > 0) {
+        if (enemy.invulnerableFrames <= 0) {
+            let dmg = 10;
+            let knockPower = player.weapon.knockback;
+            
+            if (player.skillActive && player.weapon.type === 'boots') {
+                dmg = 25; // Sát thương cực thốn
+                knockPower = player.weapon.knockback * 1.8; // Hất văng xa gấp đôi
+                player.vx *= -0.3;
+                player.vy *= -0.3;
+                player.skillActive = false; // Ngắt chiêu luôn khi đá trúng
+            } else if (player.skillActive && player.weapon.type === 'hammer') {
+                dmg = 5;
+                knockPower = player.weapon.knockback * 0.35;
+            } else {
+                knockPower = player.weapon.knockback * 0.45;
+            }
+            
+            enemy.hp -= dmg;
+            playSound('hit'); 
+            camera.shake = 12;
+            
+            // Hướng văng dựa trên vị trí tiếp xúc thực tế
+            const angle = Math.atan2(enemy.y - pWeaponY, enemy.x - pWeaponX);
+            enemy.vx += Math.cos(angle) * knockPower; 
+            enemy.vy += Math.sin(angle) * knockPower * 0.5;
+            checkGameOver();
+        }
+    }
+
+    // --- LOGIC PHẢN ĐÒN CỦA ĐỐI THỦ (ENEMY) ---
+    let eTotalAngle = enemy.angle + (enemy.armAngle * enemy.facing);
+    let eWeaponX = enemy.x + Math.cos(eTotalAngle) * (enemy.weapon.range + 10) * enemy.facing;
+    let eWeaponY = enemy.y + 10 + Math.sin(eTotalAngle) * (enemy.weapon.range + 10);
+    let eDist = Math.hypot(eWeaponX - player.x, eWeaponY - (player.y + 15));
+    let eReach = enemy.weapon.radius + 28;
+
+    if (eDist < eReach && player.hp > 0) {
+        const angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
+        if (player.invulnerableFrames <= 0) {
+            player.hp -= (enemy.skillActive ? 15 : 10); 
+            playSound('hit'); 
+            camera.shake = 12;
+            player.vx -= Math.cos(angle) * enemy.weapon.knockback * 0.45; 
+            player.vy -= (enemy.weapon.knockback * 0.2);
+            enemy.vx += Math.cos(angle) * 3; 
+            player.invulnerableFrames = 15; 
+            player.clashOffset = 1.2;
+            checkGameOver();
+        }
+    }
+
+    // --- LOGIC ĐẠN BAY (PROJECTILES) ---
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        let p = projectiles[i]; p.x += p.vx; p.y += p.vy;
+        let target = p.isPlayer ? enemy : player;
+        if (target && target.hp > 0 && Math.hypot(p.x - target.x, p.y - (target.y + 15)) < p.radius + 20) {
+            if (target.invulnerableFrames <= 0) {
+                target.hp -= 12; 
+                playSound('hit');
+                target.vx += (p.vx > 0 ? 1 : -1) * p.knockback * 0.35; 
+                target.vy -= 4; 
+                target.invulnerableFrames = 15;
+                checkGameOver();
+            }
+            projectiles.splice(i, 1); 
+            continue;
+        }
+        if (p.x < 0 || p.x > WORLD_WIDTH || p.y < 0 || p.y > WORLD_HEIGHT) projectiles.splice(i, 1);
+    }
+}
+
+
+function updateAI() {
+    if (!gameStarted || isGameOver || isPaused || !enemy || matchConfig.gameMode === "player") return;
+    
+    if (matchConfig.gameMode === "cpu-easy") {
+        enemy.vx = 0; enemy.inputX = 0; enemy.inputY = 0;
+        enemy.facing = player.x > enemy.x ? 1 : -1;
+        return;
+    }
+
+    const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+    enemy.facing = player.x > enemy.x ? 1 : -1;
+
+    let isHard = matchConfig.gameMode === "cpu-hard";
+        // --- LỰA CHỌN HƯỚNG ĐI BAN ĐẦU DỰA TRÊN VỊ TRÍ PLAYER ---
+    let desiredInputX = (enemy.x < player.x) ? 1 : -1;
+    
+    // --- HỆ THỐNG RADAR QUÉT LAVA DƯỚI CHÂN AI ---
+    // Tính toán vị trí AI sẽ đặt chân đến nếu tiếp tục đi theo hướng đó (quét trước 45 pixel)
+    let nextX = enemy.x + (desiredInputX * 45);
+    let isSafeAhead = false;
+
+    // Quét xem vị trí nextX đó có nằm trên bất kỳ khối sàn (floor) nào không
+    for (let f of floors) {
+        if (nextX >= f.x && nextX <= f.x + f.width) {
+            isSafeAhead = true;
+            break;
+        }
+    }
+
+    // Nếu phía trước là khoảng không rỗng (Lava), bắt AI phản xạ dừng lại hoặc nhảy lùi
+    if (!isSafeAhead) {
+        enemy.inputX = -desiredInputX; // Đi ngược lại hướng nguy hiểm để lùi xa mép hố
+        
+        // Nếu AI đang đứng quá sát mép (sắp trượt chân), ép nó nhảy lùi về vùng an toàn
+        if (enemy.onGround && Math.random() < 0.6) {
+            enemy.vy = -9; // Kích hoạt nhảy cao
+        }
+    } else {
+        // Nếu phía trước an toàn thì cho phép tiến đến tấn công người chơi bình thường
+        enemy.inputX = desiredInputX;
+        
+        // Logic nhảy tấn công thông thường khi có đất đỡ
+        if (player.y < enemy.y - 40 && enemy.onGround && Math.random() < 0.03) {
+            enemy.vy = -8.5;
+        }
+    }
+    
+    let speedMult = isHard ? 0.75 : 0.5;
+    let skillChance = isHard ? 0.06 : 0.03;
+
+    if (dist < 80) {
+        enemy.vx -= enemy.facing * speedMult; 
+        if (Math.random() < 0.05) enemy.vy = -6;
+    } else if (dist > enemy.weapon.range * (isHard ? 1.2 : 2)) {
+        enemy.vx += enemy.facing * speedMult;
+        if (player.y < enemy.y - 40 && enemy.onGround && Math.random() < 0.06) enemy.vy = -8.5;
+    }
+
+    if (dist < 160 && enemy.skillCooldown === 0 && Math.random() < skillChance) {
+        enemy.triggerSpecialSkill();
+    }
+}
+
+function updateCamera() {
+    if (!player) return;
+
+    let targetX, targetY;
+    let distance = 0;
+
+    // 1. Nếu có kẻ địch (chế độ PvE/PvP), tính toán vị trí trung tâm giữa 2 người
+    if (enemy) {
+        targetX = (player.x + enemy.x) / 2;
+        targetY = (player.y + enemy.y) / 2;
+        
+        // Tính khoảng cách vật lý giữa Player và Enemy
+        let dx = player.x - enemy.x;
+        let dy = player.y - enemy.y;
+        distance = Math.sqrt(dx * dx + dy * dy);
+    } else {
+        // Nếu chơi một mình (hoặc tập luyện), camera đi theo Player
+        targetX = player.x;
+        targetY = player.y;
+    }
+
+    // 2. LOGIC ZOOM TỰ ĐỘNG THEO KHOẢNG CÁCH
+    // Thiết lập các giới hạn zoom để màn hình không bị quá nhỏ hoặc quá to
+    let minZoom = 0.5; // Khi ở cực xa, không cho camera nhỏ hơn mức này
+    let maxZoom = 1.3; // Khi ở cực gần, không cho camera to quá mức này
+    
+    if (enemy) {
+        // Khoảng cách càng lớn thì mức zoom càng nhỏ (camera càng rộng)
+        // Số 600 ở đây là khoảng cách chuẩn lý tưởng, bạn có thể chỉnh tăng/giảm để vừa mắt
+        camera.zoom = 600 / (distance + 400); 
+        
+        // Giới hạn camera nằm trong khoảng an toàn
+        if (camera.zoom < minZoom) camera.zoom = minZoom;
+        if (camera.zoom > maxZoom) camera.zoom = maxZoom;
+    } else {
+        camera.zoom = 1.0; // Mặc định chơi 1 mình thì để zoom ổn định ở mức 1.0
+    }
+
+    // 3. Hiệu ứng Camera mượt (Lerp) bám theo tâm trận đấu
+    camera.x += (targetX - canvas.width / (2 * camera.zoom) - camera.x) * 0.1;
+    camera.y += (targetY - canvas.height / (2 * camera.zoom) - camera.y) * 0.1;
+
+    // Giữ camera không bị lướt ra ngoài biên của bản đồ quá đà
+    let mapWidth = 3000; 
+    let mapHeight = 2000;
+    if (camera.x < -500) camera.x = -500;
+    if (camera.x > mapWidth - canvas.width / camera.zoom) camera.x = mapWidth - canvas.width / camera.zoom;
+    if (camera.y < -500) camera.y = -500;
+    if (camera.y > mapHeight - canvas.height / camera.zoom) camera.y = mapHeight - canvas.height / camera.zoom;
+}
+
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    joystickLeft.setPos(); joystickRight.setPos();
+
+    if ((gameStarted || isGameOver) && !isPaused) {
+        const activeMap = MAP_TEMPLATES[currentMapIndex];
+        if (activeMap && typeof activeMap.update === "function") {
+            activeMap.update(floors);
+        }
+        // ------------------------------------------------
+
+        if (!isGameOver) {
+            player.inputX = 0; player.inputY = 0;
+            if (keysPressed['KeyA']) { player.vx -= 0.55; player.facing = -1; player.inputX = -1; }
+            if (keysPressed['KeyD']) { player.vx += 0.55; player.facing = 1; player.inputX = 1; }
+            if (keysPressed['KeyW'] && player.onGround) { player.vy = -8.5; player.inputY = -1; }
+            if (keysPressed['KeyS']) { player.inputY = 1; }
+            
+            if (joystickLeft.active) {
+                player.vx += joystickLeft.inputX * 0.55;
+                if (joystickLeft.inputY < -0.65 && player.onGround) player.vy = -8.5;
+                if (Math.abs(joystickLeft.inputX) > 0.1) player.facing = joystickLeft.inputX > 0 ? 1 : -1;
+                player.inputX = joystickLeft.inputX; player.inputY = joystickLeft.inputY;
+            }
+
+            if (matchConfig.gameMode === "player" && enemy) {
+                enemy.inputX = 0; enemy.inputY = 0;
+                if (keysPressed['ArrowLeft']) { enemy.vx -= 0.55; enemy.facing = -1; enemy.inputX = -1; }
+                if (keysPressed['ArrowRight']) { enemy.vx += 0.55; enemy.facing = 1; enemy.inputX = 1; }
+                if (keysPressed['ArrowUp'] && enemy.onGround) { enemy.vy = -8.5; enemy.inputY = -1; }
+                if (keysPressed['ArrowDown']) { enemy.inputY = 1; }
+                
+                if (joystickRight.active) {
+                    enemy.vx += joystickRight.inputX * 0.55;
+                    if (joystickRight.inputY < -0.65 && enemy.onGround) enemy.vy = -8.5;
+                    if (Math.abs(joystickRight.inputX) > 0.1) enemy.facing = joystickRight.inputX > 0 ? 1 : -1;
+                    enemy.inputX = joystickRight.inputX; enemy.inputY = joystickRight.inputY;
+                }
+            }
+        }
+        
+        if (player) player.update(); 
+        if (enemy && !isGameOver) updateAI();
+        if (enemy) enemy.update(); 
+        checkCombat();
+    }
+
+    let lavaSurfaceY = WORLD_HEIGHT - 120; 
+    let entities = enemy ? [player, enemy] : [player];
+    entities.forEach(char => {
+        if (char && char.y + char.bodyHeight + char.legLength >= lavaSurfaceY && !char.isBurned) {
+            char.hp = 0; char.isBurned = true; char.vy = -14;
+            char.vx += (Math.random() - 0.5) * 12; char.angle = char.facing * -3;
+            playSound('hit'); camera.shake = 15;
+            checkGameOver();
+        }
+    });
+
+    updateCamera();
+    
+    ctx.save(); 
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
+
+    const map = MAPS[currentMapIdx];
+    let grad = ctx.createLinearGradient(0, 0, 0, WORLD_HEIGHT);
+    grad.addColorStop(0, map.skyTop); grad.addColorStop(1, map.skyBot);
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    ctx.fillStyle = map.clouds;
+    for(let i=0; i<5; i++) ctx.fillRect((Date.now()*0.01 + i*300) % WORLD_WIDTH, 100 + i*40, 160, 40);
+
+        // Vẽ toàn bộ các khối đất của map mới lên canvas
+    floors.forEach(f => {
+        ctx.fillStyle = map.island;
+        ctx.fillRect(f.x, f.y, f.width, f.height);
+        
+        // Vẽ thêm lớp cỏ phủ trên bề mặt sàn
+        ctx.fillStyle = map.grass;
+        ctx.fillRect(f.x, f.y, f.width, 6);
+    });
+
+    projectiles.forEach(p => {
+        ctx.fillStyle = p.color; ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    });
+
+    if (player) player.draw(); 
+    if (enemy) enemy.draw();
+
+    if (isInCountdown) {
+    ctx.font = "bold 16px 'Segoe UI', sans-serif"; 
+    ctx.textAlign = "center";
+    if (player) { ctx.fillStyle = "#1e3a8a"; ctx.fillText("SCORE: " + score.player, player.x, player.y - 60); }
+    if (enemy) { ctx.fillStyle = "#7f1d1d"; ctx.fillText("SCORE: " + score.ai, enemy.x, enemy.y - 60); }
+}
+
+
+    let waveOffset = Date.now() * 0.004;
+    let lavaGrad = ctx.createLinearGradient(0, lavaSurfaceY, 0, WORLD_HEIGHT);
+    lavaGrad.addColorStop(0, "#f97316"); lavaGrad.addColorStop(0.3, "#ef4444"); lavaGrad.addColorStop(1, "#7f1d1d");
+
+    ctx.fillStyle = lavaGrad; ctx.beginPath(); ctx.moveTo(0, WORLD_HEIGHT);
+    for (let x = 0; x <= WORLD_WIDTH; x += 40) {
+        let y = lavaSurfaceY + Math.sin(x * 0.01 + waveOffset) * 6;
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(WORLD_WIDTH, WORLD_HEIGHT); ctx.closePath(); ctx.fill();
+
+    ctx.shadowBlur = 20; ctx.shadowColor = "#f97316"; ctx.strokeStyle = "#fef08a"; ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0; 
+    ctx.restore();
+
+    joystickLeft.draw();
+    joystickRight.draw();
+
+    requestAnimationFrame(loop);
+}
+
+loop();
+window.addEventListener('resize', () => { resizeCanvas(); joystickLeft.setPos(); joystickRight.setPos(); });
+</script>
+</body>
+</html>
